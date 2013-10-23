@@ -1,0 +1,106 @@
+heat_template_version: 2013-05-23
+description: |
+  Template to install ownCloud on a single server.
+
+parameters:
+  key_name:
+    type: String
+  flavor:
+    type: String
+    default: m1.small
+  image:
+    type: String
+    default: fedora-owncloud
+
+resources:
+  oc_sec_group:
+    type:  AWS::EC2::SecurityGroup
+    properties:
+      GroupDescription: Enable only ping and SSH access
+      SecurityGroupIngress:
+      - {CidrIp: 0.0.0.0/0, FromPort: '-1', IpProtocol: icmp, ToPort: '-1'}
+      - {CidrIp: 0.0.0.0/0, FromPort: '22', IpProtocol: tcp, ToPort: '22'}
+      - {CidrIp: 0.0.0.0/0, FromPort: '80', IpProtocol: tcp, ToPort: '80'}
+
+  mysql_root_pwd:
+    type:  OS::Heat::RandomString
+
+  oc_admin_pwd:
+    type:  OS::Heat::RandomString
+
+  oc_db_pwd:
+    type:  OS::Heat::RandomString
+
+  oc_server:
+    type:  OS::Nova::Server
+    properties:
+      image: {get_param: image}
+      flavor: {get_param: flavor}
+      key_name: {get_param: key_name}
+      security_groups:
+      - {get_resource: oc_sec_group}
+      user_data:
+        str_replace:
+          params:
+            mysql_root_pwd: {get_attr: [mysql_root_pwd, value]}
+            oc_db_pwd: {get_attr: [oc_db_pwd, value]}
+          template: |
+            #!/bin/bash -v
+            /opt/aws/bin/cfn-init
+            mysqladmin -u root password mysql_root_pwd
+            cat << EOF | mysql -u root --password='mysql_root_pwd'
+            drop database if exists ownclouddb;
+            create database if not exists ownclouddb;
+            grant all on ownclouddb.* to 'owncloud_user'@'localhost' identified by 'oc_db_pwd';
+            grant all on ownclouddb.* to 'owncloud_user'@'%'         identified by 'oc_db_pwd';
+            flush privileges;
+            EOF
+
+            # trigger database configuration
+            curl http://localhost/owncloud/
+
+    Metadata:
+      AWS::CloudFormation::Init:
+        config:
+          services:
+            systemd:
+              mysqld: {enabled: 'true', ensureRunning: 'true'}
+              httpd: {enabled: 'true', ensureRunning: 'true'}
+              iptables: {enabled: 'false', ensureRunning: 'false'}
+          files:
+            /var/www/html/owncloud/config/autoconfig.php:
+              content:
+                str_replace:
+                  params:
+                    oc_db_pwd: {get_attr: [oc_db_pwd, value]}
+                    oc_admin_pwd: {get_attr: [oc_admin_pwd, value]}
+                    owncloud_dbhost: localhost
+                  template: |
+                    <?php
+                    $AUTOCONFIG = array(
+                      "dbtype"        => "mysql",
+                      "dbname"        => "ownclouddb",
+                      'dbuser'        => 'owncloud_user',
+                      'dbpass'        => 'oc_db_pwd',
+                      "dbhost"        => "owncloud_dbhost",
+                      "dbtableprefix" => "oc_",
+                      "adminlogin"    => "admin",
+                      "adminpass"     => "oc_admin_pwd",
+                      "directory"     => "/var/www/html/owncloud/data",
+                    );
+              mode: '000640'
+              owner: apache
+              group: apache
+
+outputs:
+  oc_server_url:
+    description: URL to ownCloud
+    value:
+      str_replace:
+        params:
+          owncloud_ip: {get_attr: [oc_server, first_address]}
+        template: http://owncloud_ip/owncloud/
+
+  oc_admin_pwd:
+    description: Generated password for ownCloud admin user
+    value: {get_attr: [oc_admin_pwd, value]}
