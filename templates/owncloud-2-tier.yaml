@@ -10,14 +10,14 @@ parameters:
     default: m1.small
   image:
     type: String
-    default: fedora-owncloud
+    default: ubuntu-owncloud
 
 resources:
 
   web_sg:
     type:  AWS::EC2::SecurityGroup
     properties:
-      GroupDescription: Enable only ping and SSH access
+      GroupDescription: Enable ping/ssh/web
       SecurityGroupIngress:
       - {CidrIp: 0.0.0.0/0, FromPort: '-1', IpProtocol: icmp, ToPort: '-1'}
       - {CidrIp: 0.0.0.0/0, FromPort: '22', IpProtocol: tcp, ToPort: '22'}
@@ -26,7 +26,7 @@ resources:
   db_sg:
     type:  AWS::EC2::SecurityGroup
     properties:
-      GroupDescription: Enable only ping and SSH access
+      GroupDescription: Enable ping/ssh/DB.
       SecurityGroupIngress:
       - {CidrIp: 0.0.0.0/0, FromPort: '-1', IpProtocol: icmp, ToPort: '-1'}
       - {CidrIp: 0.0.0.0/0, FromPort: '22', IpProtocol: tcp, ToPort: '22'}
@@ -44,11 +44,13 @@ resources:
   oc_db_server:
     type:  OS::Nova::Server
     properties:
+      networks:
+      - uuid: 'e68163e1-f6af-4a42-a958-d9e9b4e2a80f'
       image: {get_param: image}
       flavor: {get_param: flavor}
       key_name: {get_param: key_name}
       security_groups:
-      - {get_resource: db_sg}
+      - '3beff72a-51b2-4f03-bf05-44734fd630b8'
       user_data:
         str_replace:
           params:
@@ -69,7 +71,8 @@ resources:
 
             # trigger database configuration
             curl http://localhost/owncloud/
-            systemctl stop httpd
+            # And after this apache is not needed.
+            service apache2 stop
 
             # extract the generated passwordsalt for other webservers
             salt=$(grep passwordsalt /var/www/html/owncloud/config/config.php | awk -F"'" '{print $4}')
@@ -79,10 +82,9 @@ resources:
       AWS::CloudFormation::Init:
         config:
           services:
-            systemd:
+            sysvinit:
               mysqld: {enabled: 'true', ensureRunning: 'true'}
-              httpd: {enabled: 'true', ensureRunning: 'true'}
-              iptables: {enabled: 'false', ensureRunning: 'false'}
+              apache2: {enabled: 'true', ensureRunning: 'true'}
           files:
             /var/www/html/owncloud/config/autoconfig.php:
               content:
@@ -121,11 +123,13 @@ resources:
   oc_web_server:
     type:  OS::Nova::Server
     properties:
+      networks:
+      - uuid: 'e68163e1-f6af-4a42-a958-d9e9b4e2a80f'
       image: {get_param: image}
       flavor: {get_param: flavor}
       key_name: {get_param: key_name}
       security_groups:
-      - {get_resource: web_sg}
+      - '3beff72a-51b2-4f03-bf05-44734fd630b8'
       user_data:
         str_replace:
           params:
@@ -139,9 +143,8 @@ resources:
       AWS::CloudFormation::Init:
         config:
           services:
-            systemd:
-              httpd: {enabled: 'true', ensureRunning: 'true'}
-              iptables: {enabled: 'false', ensureRunning: 'false'}
+            sysvinit:
+              apache2: {enabled: 'true', ensureRunning: 'true'}
           files:
             /var/www/html/owncloud/config/config.php:
               content:
