@@ -50,7 +50,7 @@ resources:
       flavor: {get_param: flavor}
       key_name: {get_param: key_name}
       security_groups:
-      - {get_resource: db_sg}
+      - '3beff72a-51b2-4f03-bf05-44734fd630b8'
       user_data:
         str_replace:
           params:
@@ -129,7 +129,7 @@ resources:
       flavor: {get_param: flavor}
       key_name: {get_param: key_name}
       security_groups:
-      - {get_resource: web_sg}
+      - '3beff72a-51b2-4f03-bf05-44734fd630b8'
       user_data:
         str_replace:
           params:
