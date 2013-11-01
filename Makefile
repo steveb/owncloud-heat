@@ -1,7 +1,7 @@
 
-IMAGE_BASE=fedora
+IMAGE_BASE=ubuntu
 IMAGE_NAME=$(IMAGE_BASE)-owncloud
-IMAGE_ELEMENTS=$(IMAGE_BASE) vm owncloud selinux-permissive heat-cfntools
+IMAGE_ELEMENTS=$(IMAGE_BASE) vm owncloud heat-cfntools
 IMAGE_ARCH=i386
 image-all: image image-upload
 

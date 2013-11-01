@@ -1,8 +1,5 @@
 #!/bin/bash
 
-set -e
-set -o xtrace
+set -eux
 
-rpm --import http://download.opensuse.org/repositories/isv:/ownCloud:/community/Fedora_19/repodata/repomd.xml.key
-
-install-packages mysql-server httpd owncloud
+install-packages mysql-server apache2 owncloud owncloud-mysql
