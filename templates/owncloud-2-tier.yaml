@@ -44,6 +44,8 @@ resources:
   oc_db_server:
     type:  OS::Nova::Server
     properties:
+      networks:
+      - uuid: 'e68163e1-f6af-4a42-a958-d9e9b4e2a80f'
       image: {get_param: image}
       flavor: {get_param: flavor}
       key_name: {get_param: key_name}
@@ -121,6 +123,8 @@ resources:
   oc_web_server:
     type:  OS::Nova::Server
     properties:
+      networks:
+      - uuid: 'e68163e1-f6af-4a42-a958-d9e9b4e2a80f'
       image: {get_param: image}
       flavor: {get_param: flavor}
       key_name: {get_param: key_name}
