@@ -1,19 +1,22 @@
 heat_template_version: 2013-05-23
 description: |
-  Template to install ownCloud on a single server.
+  Template to install ownCloud with separate database and web servers.
 
 parameters:
   key_name:
     type: String
+    description: Name of existing key for ssh server access
   flavor:
     type: String
+    description: Flavor of server to launch
     default: m1.small
   image:
     type: String
+    description: Existing image to boot from
     default: fedora-owncloud
   ext_net:
     type: String
-    default: f4084aeb-8f99-4f14-947c-2bc407b2c2cc
+    description: UUID of external network to attach to
 
 resources:
 
@@ -107,7 +110,7 @@ resources:
 
             # trigger database configuration
             curl http://localhost/owncloud/
-            #systemctl stop httpd
+            systemctl stop httpd
 
             # extract the generated passwordsalt for other webservers
             salt=$(grep passwordsalt /var/www/html/owncloud/config/config.php | awk -F"'" '{print $4}')

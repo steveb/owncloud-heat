@@ -30,7 +30,7 @@ resources:
       SecurityGroupIngress:
       - {CidrIp: 0.0.0.0/0, FromPort: '-1', IpProtocol: icmp, ToPort: '-1'}
       - {CidrIp: 0.0.0.0/0, FromPort: '22', IpProtocol: tcp, ToPort: '22'}
-      - {CidrIp: 0.0.0.0/0, FromPort: '3306', IpProtocol: tcp, ToPort: '3306'}
+      - {CidrIp: 10.0.0.0/24, FromPort: '3306', IpProtocol: tcp, ToPort: '3306'}
 
   mysql_root_pwd:
     type:  OS::Heat::RandomString
@@ -63,13 +63,13 @@ resources:
             drop database if exists ownclouddb;
             create database if not exists ownclouddb;
             grant all on ownclouddb.* to 'owncloud_user'@'localhost' identified by 'oc_db_pwd';
-            grant all on ownclouddb.* to 'owncloud_user'@'%'         identified by 'oc_db_pwd';
+            grant all on ownclouddb.* to 'owncloud_user'@'10.0.0.%'         identified by 'oc_db_pwd';
             flush privileges;
             EOF
 
             # trigger database configuration
             curl http://localhost/owncloud/
-            #systemctl stop httpd
+            systemctl stop httpd
 
             # extract the generated passwordsalt for other webservers
             salt=$(grep passwordsalt /var/www/html/owncloud/config/config.php | awk -F"'" '{print $4}')
@@ -126,9 +126,14 @@ resources:
       key_name: {get_param: key_name}
       security_groups:
       - {get_resource: web_sg}
-      user_data: |
-        #!/bin/bash -v
-        /opt/aws/bin/cfn-init
+      user_data:
+        str_replace:
+          params:
+            alldone_wh: {get_resource: alldone_wh}
+          template: |
+            #!/bin/bash -v
+            /opt/aws/bin/cfn-init
+            /opt/aws/bin/cfn-signal -e 0 'alldone_wh'
 
     Metadata:
       AWS::CloudFormation::Init:
@@ -163,6 +168,16 @@ resources:
               mode: '000640'
               owner: apache
               group: apache
+
+  alldone_wh:
+    type: AWS::CloudFormation::WaitConditionHandle
+
+  alldone_wc:
+    type: AWS::CloudFormation::WaitCondition
+    DependsOn: oc_web_server
+    properties:
+      Handle: {get_resource: alldone_wh}
+      Timeout: '600'
 
 outputs:
   owncloud_server_url:
