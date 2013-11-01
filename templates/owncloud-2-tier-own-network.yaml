@@ -29,7 +29,7 @@ resources:
       network_id: {get_resource: oc_network}
       ip_version: 4
       cidr: 10.0.10.0/24
-      dns_nameservers: [192.168.1.254]
+      dns_nameservers: [8.8.8.8, 8.8.4.4]
       allocation_pools:
       - {start: 10.0.10.20, end: 10.0.10.50}
 
