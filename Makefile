@@ -9,6 +9,4 @@ image:
 	disk-image-create -a $(IMAGE_ARCH) -o $(IMAGE_NAME) $(IMAGE_ELEMENTS)
 
 image-upload:
-	glance image-create --name $(IMAGE_NAME) --disk-format=qcow2 --container-format=bare < $(IMAGE_NAME).qcow2
-
-
+	glance image-create --name $(IMAGE_NAME) --disk-format=qcow2 --container-format=bare --file $(IMAGE_NAME).qcow2
