@@ -17,7 +17,7 @@ resources:
   web_sg:
     type:  AWS::EC2::SecurityGroup
     properties:
-      GroupDescription: Enable only ping and SSH access
+      GroupDescription: Enable ping/ssh/web
       SecurityGroupIngress:
       - {CidrIp: 0.0.0.0/0, FromPort: '-1', IpProtocol: icmp, ToPort: '-1'}
       - {CidrIp: 0.0.0.0/0, FromPort: '22', IpProtocol: tcp, ToPort: '22'}
@@ -26,7 +26,7 @@ resources:
   db_sg:
     type:  AWS::EC2::SecurityGroup
     properties:
-      GroupDescription: Enable only ping and SSH access
+      GroupDescription: Enable ping/ssh/DB.
       SecurityGroupIngress:
       - {CidrIp: 0.0.0.0/0, FromPort: '-1', IpProtocol: icmp, ToPort: '-1'}
       - {CidrIp: 0.0.0.0/0, FromPort: '22', IpProtocol: tcp, ToPort: '22'}
